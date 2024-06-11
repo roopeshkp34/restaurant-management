@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
+	"log"
 	"os"
+	"os/signal"
+	"time"
 
-	"github.com/roopeshkp34/restaurent-management/database"
-	"github.com/roopeshkp34/restaurent-management/middleware"
-	"github.com/roopeshkp34/restaurent-management/routes"
+	"github.com/roopeshkp34/restaurant-management/database"
+	"github.com/roopeshkp34/restaurant-management/middleware"
+	"github.com/roopeshkp34/restaurant-management/routes"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -14,6 +18,10 @@ import (
 var foodCollection *mongo.Collection = database.OpenCollection(database.Client, "food")
 
 func main() {
+	// for stopping server
+	stopchan := make(chan os.Signal)
+	signal.Notify(stopchan, os.Interrupt)
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8000"
@@ -22,7 +30,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger())
 	routes.UserRoutes(router)
-	router.User(middleware.Authentication)
+	router.Use(middleware.Authentication)
 
 	routes.FoodRoutes(router)
 	routes.MenuRoutes(router)
@@ -31,5 +39,11 @@ func main() {
 	routes.OrderItemRoutes(router)
 	routes.InvoiceRoutes(router)
 	router.Run(":" + port)
+
+	<-stopchan
+	log.Println("Shutting Down server..")
+	_, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	log.Println("Server gracefully stopped")
 
 }
