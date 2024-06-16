@@ -86,6 +86,10 @@ func CreateMenu() gin.HandlerFunc {
 	}
 }
 
+func inTimeSpan(start, end, check time.Time) bool {
+	return start.After(time.Now()) && end.After(start)
+}
+
 func UpdateMenu() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
@@ -100,7 +104,7 @@ func UpdateMenu() gin.HandlerFunc {
 
 		var updateObject primitive.D
 
-		if menu.Start_date != menu.End_date != nil {
+		if menu.Start_date != nil && menu.End_date != nil {
 			if !inTimeSpan(*menu.Start_date, *menu.End_date, time.Now()) {
 				msg := "Kindly retype the time"
 				c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
